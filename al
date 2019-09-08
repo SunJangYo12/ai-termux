@@ -1,4 +1,3 @@
-#!/bin/sh
 
 #Colors vars
 green_color="\033[1;32m"
@@ -61,7 +60,7 @@ function echo_white() {
 }
 
 function apkkey() {
-    read -p "build/compile? b/c: " aksi
+    read -p "tes/build/compile? t/b/c: " aksi
 
     if [ "$aksi" = "b" ]; then
        read -p "nama project: " nama
@@ -75,6 +74,14 @@ function apkkey() {
        cp -R "$lib/build/res" "$nama"
        cp -R "$lib/build/AndroidManifest.xml" "$nama"
        cp -R "$lib/build/MainActivity.java" "$nama/src/$paket"
+    elif [ "$aksi" = "t" ]; then
+       read -p "nama java(tanpa format): " nama
+       echo_green "Compiling..."
+       ecj "$nama".java
+       echo_yellow "Dexing..."
+       dx --dex --output="$nama".dex "$nama".class
+       echo_yellow "Running..."
+       dalvikvm -cp "$nama".dex "$nama"
 
     elif [ "$aksi" = "c" ]; then
        ls;echo;read -p "nama project: " nama
