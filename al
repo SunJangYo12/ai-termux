@@ -91,13 +91,16 @@ function apkkey() {
 
        echo_yellow "[+] Building R.java"
        aapt package -f -m -J src/ -M AndroidManifest.xml -S res/ -I $lib/android.jar
+       rm -r bin/*
 
        clagi="y"
        while [ $clagi = "y" ]; do
             read -p "[+] compile y/n: " compile
             if [ "$compile" = "y" ]; then
                  echo_green "[+] Compiling..."
-                 ecj -d ./bin -verbose -classpath $PREFIX/share/java/android.jar -sourcepath ./src/ $(find ./src/ -type f -name \*.java)
+#                 ecj -d ./bin -verbose -Xbootclasspath/p:$PREFIX/share/java/android.jar -sourcepath ./src/ $(find ./src/ -type f -name \*.java)
+javac -d bin -source 1.7 -target 1.7 -classpath src -bootclasspath ~/../usr/lib/allib/android.jar src/$paket/*.java
+
             else
                  clagi="n"
             fi
@@ -115,11 +118,9 @@ function apkkey() {
 
        echo_yellow "[+] Signing apk"
        apksigner -p android release.keystore bin/out.apk bin/out-sign.apk
-
        echo
        echo_yellow "###### SUKSES ######"
        rm -r lib
-       rm bin/out.apk
        rm release.keystore
        rm hello-jni.o
        rm classes.dex
