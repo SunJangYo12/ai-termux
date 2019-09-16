@@ -65,12 +65,15 @@ function apkkey() {
     if [ "$aksi" = "b" ]; then
        read -p "nama project: " nama
        read -p "nama paket com/tes: " paket
+       read -p "use object code y/n: " usejni
        mkdir -p "$nama/src/$paket"
        mkdir -p "$nama/assets"
        mkdir -p "$nama/bin"
        echo_pink "project $nama dibuat"
 
-       cp -R "$lib/build/jni" "$nama"
+       if [ "$usejni" = "y" ]; then
+           cp -R "$lib/build/jni" "$nama"
+       fi
        cp -R "$lib/build/res" "$nama"
        cp -R "$lib/build/AndroidManifest.xml" "$nama"
        cp -R "$lib/build/MainActivity.java" "$nama/src/$paket"
@@ -98,32 +101,51 @@ function apkkey() {
             read -p "[+] compile y/n: " compile
             if [ "$compile" = "y" ]; then
                  echo_green "[+] Compiling..."
-#                 ecj -d ./bin -verbose -Xbootclasspath/p:$PREFIX/share/java/android.jar -sourcepath ./src/ $(find ./src/ -type f -name \*.java)
-javac -d bin -source 1.7 -target 1.7 -classpath src -bootclasspath ~/../usr/lib/allib/android.jar src/$paket/*.java
-
+                 #ecj -d ./bin -verbose -Xbootclasspath/p:$PREFIX/share/java/android.jar -sourcepath ./src/ $(find ./src/ -type f -name \*.java)
+                 javac -d bin -source 1.7 -target 1.7 -classpath src -bootclasspath ~/../usr/lib/allib/android.jar src/$paket/*.java
             else
                  clagi="n"
             fi
        done
 
-       echo_green "[+] Building C code"
-       clang -fpic -ffunction-sections -funwind-tables -fstack-protector-strong -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -fno-integrated-as  -target armv5te-none-linux-androideabi -march=armv5te -mtune=xscale -msoft-float -mthumb -Os -g -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -O0 -UNDEBUG -marm -fno-omit-frame-pointer -Ijni -DANDROID  -Wa,--noexecstack -Wformat -Werror=format-security -I/data/data/com.termux/files/usr/include -c  jni/hello-jni.c -o ./hello-jni.o
-       mkdir -p lib/armeabi
-       clang -Wl,-soname,libhello-jni.so -shared ./hello-jni.o -lgcc -target armv5te-none-linux-androideabi  -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now   -lc -lm -o lib/armeabi/libhello-jni.so
+       cclagi="y"
+       while [ $cclagi = "y" ]; do
+            if [ -d jni ]; then
+                 read -p "[+] jni compile y/n: " jnicompile
+            else
+                 cclagi="n"
+            fi
+            if [ "$jnicompile" = "y" ]; then
+                 echo_green "[+] Building C code"
+                 clang -fpic -ffunction-sections -funwind-tables -fstack-protector-strong -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -fno-integrated-as  -target armv5te-none-linux-androideabi -march=armv5te -mtune=xscale -msoft-float -mthumb -Os -g -DNDEBUG -fomit-frame-pointer -fno-strict-aliasing -O0 -UNDEBUG -marm -fno-omit-frame-pointer -Ijni -DANDROID  -Wa,--noexecstack -Wformat -Werror=format-security -I/data/data/com.termux/files/usr/include -c  jni/hello-jni.c -o ./hello-jni.o
+                 mkdir -p lib/armeabi
+                 clang -Wl,-soname,libhello-jni.so -shared ./hello-jni.o -lgcc -target armv5te-none-linux-androideabi  -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now   -lc -lm -o lib/armeabi/libhello-jni.so
+            else
+                 cclagi="n"
+            fi
+       done
 
        echo_blue "[+] Dexing -->> ";dx --dex --output=bin/classes.dex bin
        echo_blue "[+] Build apk -->> ";aapt package -f -m -F bin/out.apk -A assets -M AndroidManifest.xml -S res -I $lib/android.jar
        cp bin/classes.dex .
-       aapt add bin/out.apk classes.dex lib/armeabi/libhello-jni.so
+
+       if [ "$usejni" = "y" ]; then
+             echo_blue "[+] Build C object -->> "
+             aapt add bin/out.apk classes.dex lib/armeabi/libhello-jni.so
+       else
+             aapt add bin/out.apk classes.dex
+       fi
 
        echo_yellow "[+] Signing apk"
        apksigner -p android release.keystore bin/out.apk bin/out-sign.apk
        echo
        echo_yellow "###### SUKSES ######"
-       rm -r lib
        rm release.keystore
-       rm hello-jni.o
        rm classes.dex
+       if [ "$usejni" = y ]; then
+              rm -r lib
+              rm hello-jni.o
+       fi
        echo
 
     else
