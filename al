@@ -60,7 +60,7 @@ function echo_white() {
 }
 
 function apkkey() {
-    read -p "tes/build/compile? t/b/c: " aksi
+    read -p "tes/build/compile/smali? t/b/c/s: " aksi
 
     if [ "$aksi" = "b" ]; then
        read -p "nama project: " nama
@@ -77,6 +77,13 @@ function apkkey() {
        cp -R "$lib/build/res" "$nama"
        cp -R "$lib/build/AndroidManifest.xml" "$nama"
        cp -R "$lib/build/MainActivity.java" "$nama/src/$paket"
+
+    elif [ "$aksi" = "s" ]; then
+       echo_green "-----------------------------"
+       echo_pink "[*] Decompile using apktool.jar"
+       echo_green "-----------------------------"
+       apkdeco
+
     elif [ "$aksi" = "t" ]; then
        read -p "nama java(tanpa format): " nama
        echo_green "Compiling..."
@@ -150,6 +157,35 @@ function apkkey() {
 
     else
        echo_red "[!] input apkkey salah"
+    fi
+}
+
+function apkdeco() {
+    sdk=$(getprop ro.build.version.sdk)
+    if [ $sdk -eq 24 ]; then
+       sed -i "s/export/#export/g" $PREFIX/bin/dalvikvm
+    fi
+
+    read -p "decompile/baksmali? d/b: " dec
+    if [ "$dec" = "d" ]; then
+       echo; ls; echo
+       read -p "masukan nama apk? tes.apk: " dapk
+       dalvikvm -cp $lib/apktool.jar brut.apktool.Main -cp $PREFIX/share/java/android.jar "$dec" "$dapk" -p /system/framework/framework-res.apk -r
+
+    elif [ "$dec" = "b" ]; then
+       pos=`ls | grep apktool.yml`
+       if [ "$pos" = "apktool.yml" ]; then
+           echo_pink "[*] baksmali"
+           dalvikvm -cp $lib/apktool.jar brut.apktool.Main -cp $PREFIX/share/java/android.jar "$dec" -p /system/framework/framework-res.apk -r
+           echo_green "[*] Signing apk..."
+           mv dist/*.apk dist/mentah.apk
+           apksigner -p android release.keystore dist/mentah.apk dist/out-sign.apk
+       else
+           echo
+           echo_red "[!] apktool.yml tidak ditemukan pastikan anda berada di path project"
+           echo
+           exit
+       fi
     fi
 }
 
