@@ -60,7 +60,17 @@ function echo_white() {
 }
 
 function apkkey() {
-    read -p "tes/build/compile/smali? t/b/c/s: " aksi
+    echo_yellow "----------------------------------"
+    echo_green "t.  tes: alternatif java yaitu ecj"
+    echo_green "b.  build: membuat apk baru"
+    echo_green "c.  compile: compile apk"
+    echo_green "s.  smali: editing apk smali code"
+    echo_green "si. sign: sign apk manual"
+    echo_green "js. javasmali: mengubah java ke smali"
+    echo_yellow "----------------------------------"
+    echo
+
+    read -p ">> " aksi
 
     if [ "$aksi" = "b" ]; then
        read -p "nama project: " nama
@@ -78,6 +88,21 @@ function apkkey() {
        cp -R "$lib/build/AndroidManifest.xml" "$nama"
        cp -R "$lib/build/MainActivity.java" "$nama/src/$paket"
 
+    elif [ "$aksi" = "js" ]; then
+       ls
+       read -p "Masukan nama java tanpa *.java: " jsnama
+       javac -target 1.6 -source 1.6 $jsnama.java
+       jar cf $jsnama.jar $jsnama.class
+       dx --dex --output=$jsnama.apk $jsnama.jar
+       apktool d -f $jsnama.apk
+       rm $jsnama.class
+       rm $jsnama.jar
+       rm $jsnama.apk
+    elif [ "$aksi" = "si" ]; then
+       ls
+       read -p "Masukan nama te.apk: " signapk
+       apksigner -p android release.keystore "$signapk" out-sign.apk
+       
     elif [ "$aksi" = "s" ]; then
        echo_green "-----------------------------"
        echo_pink "[*] Decompile using apktool.jar"
